@@ -3,12 +3,49 @@ sane-xml - enjoyable XML processing for Java
 
 (c) 2010 Jason Frame [jason@onehackoranother.com]
 
-Will explain why this exists later.
+I've always found hand-writing recursive descent parsers strangely therapeutic. But whenever I'm faced with parsing XML - particularly in Java - I feel quite ill. SAX inevitably involves creating some bug-ridden state-machine that turns out to be neither simple nor extensible, and DOM is rife with unnecessary verbosity. Depending on what you're doing it might also turn out to be downright inefficient. And don't get me started on those enterprisey tools for auto-generating piles of code that involve learning a handful of technologies with 3 or 4 letter acronyms. Hey look, a field full of hairy yaks. So I was happy to discover the new `javax.xml.stream.EventReader` class in JDK6 that allowed me to access the underlying XML stream, Hollywood style*. It was close to what I was looking for, but just a little raw, only offering methods for getting the current state. I wanted to make it more like recursive-descent parsing, with the ability to directly ask questions like "am I current at one of these opening tags?", "what's the current node text?", and to issue commands: "advance if we're at tag 'foo', throw an error otherwise".
 
-Example
--------
+(* as in "Don't call me, I'll call you")
 
-Given the following XML document:
+A quick word about recursive descent parsing
+--------------------------------------------
+
+I've been out of academia for some years now so please go easy on me :)
+
+Classical recursive-descent parsing relies solely on standard control structures (if/else, switch, while), a method for each distinct entity (production) to be parsed, plus a couple of functions for managing the token stream: `peek()`, which returns the current token, and `accept()`, which advances to the next token. As a convenience we can also define `accept(token)` as:
+
+    void accept(int token) {
+        if (peek() != token) {
+            error();
+        } else {
+            accept();
+        }
+    }
+
+And then we can write code like this for actually doing the parsing:
+
+    void parsePeople() {
+        while (peek() == PERSON) {
+            parsePerson();
+        }
+    }
+
+    void parsePerson() {
+        accept(PERSON)
+        accept(NAME);
+        accept(AGE);
+        if (peek() == CHILDREN) {
+            accept();
+            parsePeople(); // recursion
+        }
+    }
+    
+In reality we would also do some real work during parsing, like creating domain objects and either returning them or adding them to some sort of data structure.
+    
+Hello, sane-xml
+---------------
+
+`sane-xml` provides an API allowing XML to be parsed in a similar fashion, including specific features for dealing with tags, text and attributes. It's best illustrated by an example. Given the following XML document:
 
     <level>
       <tilesets>
@@ -128,3 +165,16 @@ The interface to the parser is public so standalone parsers can be instantiated 
     p.accept("hello");
     p.close();
     p.endDocument();
+    
+TODO
+----
+
+Not much, it's largely complete thanks to all the heavy lifting being handled by `javax.xml.stream`.
+
+Maybe a C version?
+
+Bug Reporting, Feature Requests
+-------------------------------
+
+Please use Github-provided facilities (issue tracker, pull requests).
+
